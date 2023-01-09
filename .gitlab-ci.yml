@@ -1,0 +1,13 @@
+default:
+  image: ${TESTING_DOCKER_IMAGE}
+
+stages:
+  - build
+
+build-code:
+  stage: build
+  script:
+    - git clone "https://${CI_USER}:${CI_TOKEN}"@"${CI_REPO}" ci
+    - cd ci
+    - python3 ci.py
+
