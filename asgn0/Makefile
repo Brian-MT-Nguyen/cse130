@@ -1,10 +1,11 @@
-CC = gcc
- 
+CC = clang
+CFLAGS = -Wall -g
+
 all: hello
 
 clean:
 	rm -f hello hello.o
 
-hello: hello.c
-	$(CC) -c hello.c
+hello:
+	$(CC) $(CFLAGS) -c hello.c
 	$(CC) -o hello hello.o
