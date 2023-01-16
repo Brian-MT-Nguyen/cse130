@@ -8,13 +8,13 @@
 int main(void) {
     // Universal buffer for all
     char buf[4096];
-    if(read(STDIN_FILENO, buf, sizeof(buf)) == -1) {
-        fprintf(stderr, "Invalid statement\n");
-        return(EXIT_FAILURE);
+    if (read(STDIN_FILENO, buf, sizeof(buf)) == -1) {
+        fprintf(stderr, "Invalid Statement\n");
+        return (EXIT_FAILURE);
     }
 
     // Get/Set and Location (First line)
-    char delimit[]= " \n";
+    char delimit[] = " \n";
     char *clStatement = strtok(buf, delimit);
 
     char *command = clStatement;
@@ -23,9 +23,9 @@ int main(void) {
     char *location = clStatement;
 
     // Check if anything is left then returns invalid (incorrect formatting)
-    if((clStatement = strtok(NULL, delimit)) != NULL) {
-        fprintf(stderr, "Invalid statement\n");
-        return(EXIT_FAILURE);
+    if ((clStatement = strtok(NULL, delimit)) != NULL) {
+        fprintf(stderr, "Invalid Statement\n");
+        return (EXIT_FAILURE);
     }
 
     // Make strings to check validity of commands
@@ -33,12 +33,12 @@ int main(void) {
     char *set = "set";
 
     // If command is get
-    if(strcmp(command, get) == 0) {
+    if (strcmp(command, get) == 0) {
         // Open file for reading and check for validity
         int fd;
-        if((fd = open(location, O_RDONLY)) == -1) {
-            fprintf(stderr, "Invalid filepath\n");
-            return(EXIT_FAILURE);
+        if ((fd = open(location, O_RDONLY)) == -1) {
+            fprintf(stderr, "Invalid Filepath\n");
+            return (EXIT_FAILURE);
         }
 
         // Clear buffer for writing from file
@@ -46,7 +46,7 @@ int main(void) {
 
         // Write file contents to stdout
         int readBytes;
-        while((readBytes = read(fd, buf, sizeof(readBytes))) > 0) {
+        while ((readBytes = read(fd, buf, sizeof(readBytes))) > 0) {
             write(STDOUT_FILENO, buf, sizeof(readBytes));
 
             // Clear buffer for writing from file
@@ -58,16 +58,16 @@ int main(void) {
 
         // Close file and exit
         close(fd);
-        return(EXIT_SUCCESS);
+        return (EXIT_SUCCESS);
     }
 
     // If command is set
-    else if(strcmp(command, set) == 0) {
+    else if (strcmp(command, set) == 0) {
         // Open file for writing and check for validity
         int fd;
-        if((fd = open(location, O_WRONLY | O_CREAT | O_TRUNC, 0777)) == -1) {
-            fprintf(stderr, "Invalid filepath\n");
-            return(EXIT_FAILURE);
+        if ((fd = open(location, O_WRONLY | O_CREAT | O_TRUNC, 0777)) == -1) {
+            fprintf(stderr, "Invalid Filepath\n");
+            return (EXIT_FAILURE);
         }
 
         // Clear buffer for writing to file
@@ -75,7 +75,7 @@ int main(void) {
         char masterString[4096] = "";
         // Write file contents to stdout
         int readBytes;
-        while((readBytes = read(STDOUT_FILENO, buf, sizeof(buf))) > 0) {
+        while ((readBytes = read(STDOUT_FILENO, buf, sizeof(buf))) > 0) {
             char line[sizeof(readBytes) + 1];
             strncpy(line, buf, sizeof(readBytes));
             line[sizeof(readBytes)] = '\0';
@@ -91,12 +91,12 @@ int main(void) {
 
         // Close file and exit
         close(fd);
-        return(EXIT_SUCCESS);
+        return (EXIT_SUCCESS);
     }
 
     // If command is invalid
     else {
-        fprintf(stderr, "Invalid command\n");
-        return(EXIT_FAILURE);
+        fprintf(stderr, "Invalid Command\n");
+        return (EXIT_FAILURE);
     }
 }
