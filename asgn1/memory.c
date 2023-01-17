@@ -16,20 +16,14 @@ int main(void) {
     }
 
     // Get/Set and Location (First line)
-    char *delimit = " \n";
     char *saveptr;
+    char *delimit = " \n";
     char *clStatement = strtok_r(buf, delimit, &saveptr);
 
     char *command = clStatement;
 
     clStatement = strtok_r(NULL, delimit, &saveptr);
     char *location = clStatement;
-
-    // // Check if anything is left then returns invalid (incorrect formatting)
-    // if ((clStatement = strtok(NULL, delimit)) != NULL) {
-    //     fprintf(stderr, "Invalid Statement\n");
-    //     return (EXIT_FAILURE);
-    // }
 
     // Make strings to check validity of commands
     char *get = "get";
@@ -49,8 +43,6 @@ int main(void) {
         while ((readBytes = read(fd, buf, sizeof(buf))) > 0) {
             write(STDOUT_FILENO, buf, readBytes);
         }
-
-        // Write newline to finish
 
         // Close file and exit
         close(fd);
@@ -73,7 +65,7 @@ int main(void) {
             write(fd, buf, readBytes);
         }
 
-        // Write OK to finish
+        // Write OK\n to stdout
         write(STDOUT_FILENO, "OK\n", sizeof(char) * 3);
 
         // Close file and exit
