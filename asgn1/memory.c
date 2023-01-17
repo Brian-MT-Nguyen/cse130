@@ -10,10 +10,14 @@ int main(void) {
     char buf[4096];
 
     // Read in first line for command + location
-    if ((read(STDIN_FILENO, buf, sizeof(buf))) == -1) {
+    int readBytes;
+    if ((readBytes = read(STDIN_FILENO, buf, sizeof(buf) - 1)) == -1) {
         fprintf(stderr, "Invalid Statement\n");
         return (EXIT_FAILURE);
     }
+
+    // Adds \0 to end of string for saveptr calls later
+    buf[readBytes > 0 ? readBytes : 0] = '\0';
 
     // Variables to parse first line
     char *saveptr;
@@ -46,7 +50,7 @@ int main(void) {
             write(STDOUT_FILENO, buf, readBytes);
         }
 
-        // Close file and exit
+        // Close file and exitg
         close(fd);
         return (EXIT_SUCCESS);
     }
@@ -60,7 +64,7 @@ int main(void) {
             return (EXIT_FAILURE);
         }
 
-        // Write file contents to specified file
+        // Write contents to buffer from initial read() call for first line
         write(fd, saveptr, strlen(saveptr));
 
         // Continue to read if user would like to input more than initial input
