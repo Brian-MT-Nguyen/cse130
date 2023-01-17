@@ -8,18 +8,21 @@
 int main(void) {
     // Universal buffer for all
     char buf[4096];
-    if (read(STDIN_FILENO, buf, sizeof(buf)) == -1) {
+
+    // Read in first line for command + location
+    if ((read(STDIN_FILENO, buf, sizeof(buf))) == -1) {
         fprintf(stderr, "Invalid Statement\n");
         return (EXIT_FAILURE);
     }
 
     // Get/Set and Location (First line)
     char *delimit = " \n";
-    char *clStatement = strtok(buf, delimit);
+    char *saveptr;
+    char *clStatement = strtok_r(buf, delimit, &saveptr);
 
     char *command = clStatement;
 
-    clStatement = strtok(NULL, delimit);
+    clStatement = strtok_r(NULL, delimit, &saveptr);
     char *location = clStatement;
 
     // // Check if anything is left then returns invalid (incorrect formatting)
@@ -48,7 +51,6 @@ int main(void) {
         }
 
         // Write newline to finish
-        write(STDOUT_FILENO, "\n", sizeof("\n"));
 
         // Close file and exit
         close(fd);
@@ -65,13 +67,14 @@ int main(void) {
         }
         
         // Write file contents to stdout
+        write(fd, saveptr, strlen(saveptr));
         int readBytes;
         while ((readBytes = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
             write(fd, buf, readBytes);
         }
 
         // Write OK to finish
-        write(STDOUT_FILENO, "OK\n", sizeof("OK\n"));
+        write(STDOUT_FILENO, "OK\n", sizeof(char)*3);
 
         // Close file and exit
         close(fd);
