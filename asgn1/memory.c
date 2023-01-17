@@ -15,13 +15,15 @@ int main(void) {
         return (EXIT_FAILURE);
     }
 
-    // Get/Set and Location (First line)
+    // Variables to parse first line
     char *saveptr;
     char *delimit = " \n";
-    char *clStatement = strtok_r(buf, delimit, &saveptr);
 
+    // Get Command
+    char *clStatement = strtok_r(buf, delimit, &saveptr);
     char *command = clStatement;
 
+    // Get Location
     clStatement = strtok_r(NULL, delimit, &saveptr);
     char *location = clStatement;
 
@@ -58,8 +60,10 @@ int main(void) {
             return (EXIT_FAILURE);
         }
 
-        // Write file contents to stdout
+        // Write file contents to specified file
         write(fd, saveptr, strlen(saveptr));
+
+        // Continue to read if user would like to input more than initial input
         int readBytes;
         while ((readBytes = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
             write(fd, buf, readBytes);
