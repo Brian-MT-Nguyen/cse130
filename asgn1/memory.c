@@ -65,7 +65,7 @@ int main(void) {
             fprintf(stderr, "Invalid Filepath\n");
             return (EXIT_FAILURE);
         }
-        
+
         // Write file contents to stdout
         write(fd, saveptr, strlen(saveptr));
         int readBytes;
@@ -74,7 +74,7 @@ int main(void) {
         }
 
         // Write OK to finish
-        write(STDOUT_FILENO, "OK\n", sizeof(char)*3);
+        write(STDOUT_FILENO, "OK\n", sizeof(char) * 3);
 
         // Close file and exit
         close(fd);
