@@ -18,8 +18,8 @@ int main(void) {
         readBytes = read(STDIN_FILENO, buf + totalRead, commandSize - totalRead);
         totalRead += readBytes;
     }
-    
-    if(buf[3] == ' ') {
+
+    if (buf[3] == ' ') {
         buf[3] = '\0';
     } else {
         buf[4] = '\0';
@@ -37,15 +37,15 @@ int main(void) {
 
         // Check for newlines and contents after buffer
         int i;
-        for(i = 0; buf[i] != '\n'; i++) {
-            if(buf[i] == ' ' || buf[i] == '\0') {
+        for (i = 0; buf[i] != '\n'; i++) {
+            if (buf[i] == ' ' || buf[i] == '\0') {
                 fprintf(stderr, "Invalid Command\n");
-                return(EXIT_FAILURE);
+                return (EXIT_FAILURE);
             }
         }
-        if(strlen(buf + i + 1) > 0) {
+        if (strlen(buf + i + 1) > 0) {
             fprintf(stderr, "Invalid Command\n");
-            return(EXIT_FAILURE);
+            return (EXIT_FAILURE);
         }
 
         buf[i] = '\0';
@@ -56,25 +56,25 @@ int main(void) {
             fprintf(stderr, "Invalid Command\n");
             return (EXIT_FAILURE);
         }
-        
+
         // Write file contents to stdout
         int readBytes;
         while ((readBytes = read(fd, buf, sizeof(buf))) > 0) {
             int writtenBytes, totalWritten = 0;
             while (totalWritten < readBytes) {
                 writtenBytes = write(STDOUT_FILENO, buf + totalWritten, readBytes - totalWritten);
-                if(writtenBytes == -1) {
+                if (writtenBytes == -1) {
                     fprintf(stderr, "Operation Failed\n");
                     close(fd);
-                    return(EXIT_FAILURE);
+                    return (EXIT_FAILURE);
                 }
                 totalWritten += writtenBytes;
             }
         }
-        if(readBytes  == -1) {
+        if (readBytes == -1) {
             fprintf(stderr, "Invalid Command\n");
             close(fd);
-            return(EXIT_FAILURE);
+            return (EXIT_FAILURE);
         }
 
         // Close file and exit
@@ -94,10 +94,10 @@ int main(void) {
 
         // Check for newline
         int i;
-        for(i = 0; buf[i] != '\n'; i++) {
-            if(buf[i] == ' ' || buf[i] == '\0') {
+        for (i = 0; buf[i] != '\n'; i++) {
+            if (buf[i] == ' ' || buf[i] == '\0') {
                 fprintf(stderr, "Invalid Command\n");
-                return(EXIT_FAILURE);
+                return (EXIT_FAILURE);
             }
         }
 
@@ -117,10 +117,10 @@ int main(void) {
         char *contents = buf + i + 1;
         while (totalWritten < totalRead) {
             writtenBytes = write(fd, contents + totalWritten, totalRead - totalWritten);
-            if(writtenBytes == -1) {
+            if (writtenBytes == -1) {
                 fprintf(stderr, "Operation Failed\n");
                 close(fd);
-                return(EXIT_FAILURE);
+                return (EXIT_FAILURE);
             }
             totalWritten += writtenBytes;
         }
@@ -130,19 +130,19 @@ int main(void) {
             int writtenBytes, totalWritten = 0;
             while (totalWritten < readBytes) {
                 writtenBytes = write(fd, buf + totalWritten, readBytes - totalWritten);
-                if(writtenBytes == -1) {
+                if (writtenBytes == -1) {
                     fprintf(stderr, "Operation Failed\n");
                     close(fd);
-                    return(EXIT_FAILURE);
+                    return (EXIT_FAILURE);
                 }
                 totalWritten += writtenBytes;
             }
         }
 
-        if(readBytes  == -1) {
+        if (readBytes == -1) {
             fprintf(stderr, "Invalid Command\n");
             close(fd);
-            return(EXIT_FAILURE);
+            return (EXIT_FAILURE);
         }
 
         // Write OK\n to stdout
