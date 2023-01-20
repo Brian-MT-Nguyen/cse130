@@ -7,7 +7,7 @@
 
 int main(void) {
     // Universal buffer for all
-    char buf[8192];
+    char buf[8192] = { '\0' };
 
     int commandSize = 4;
     int locationSize = PATH_MAX + 1024;
@@ -22,7 +22,8 @@ int main(void) {
     if (buf[3] == ' ') {
         buf[3] = '\0';
     } else {
-        buf[4] = '\0';
+        fprintf(stderr, "Invalid Command\n");
+        return (EXIT_FAILURE);
     }
 
     // If command is get
@@ -43,12 +44,14 @@ int main(void) {
                 return (EXIT_FAILURE);
             }
         }
-        if (strlen(buf + i + 1) > 0) {
-            fprintf(stderr, "Invalid Command\n");
-            return (EXIT_FAILURE);
-        }
-
         buf[i] = '\0';
+
+        for (i = i + 1; i < locationSize; i++) {
+            if (buf[i] != '\0') {
+                fprintf(stderr, "Invalid Command\n");
+                return (EXIT_FAILURE);
+            }
+        }
 
         // Open file for reading and check for validity
         int fd;
