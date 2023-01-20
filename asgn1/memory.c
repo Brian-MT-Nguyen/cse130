@@ -30,6 +30,7 @@ int main(void) {
     if (strcmp(buf, "get") == 0) {
         readBytes = 1;
         totalRead = 0;
+        memset(buf, '\0', 4);
         while ((totalRead < (locationSize - 1)) && (readBytes > 0)) {
             readBytes = read(STDIN_FILENO, buf + totalRead, locationSize - totalRead - 1);
             totalRead += readBytes;
