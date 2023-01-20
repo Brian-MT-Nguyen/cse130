@@ -7,115 +7,141 @@
 
 int main(void) {
     // Universal buffer for all
-    char buf[4096];
+    char buf[8192];
 
-    // Read in first line for command + location
-    int readBytes;
-    if ((readBytes = read(STDIN_FILENO, buf, sizeof(buf) - 1)) == -1) {
-        fprintf(stderr, "Invalid Statement\n");
-        return (EXIT_FAILURE);
+    int commandSize = 4;
+    int locationSize = PATH_MAX + 1024;
+
+    int readBytes = 1;
+    int totalRead = 0;
+    while ((totalRead < commandSize) && (readBytes > 0)) {
+        readBytes = read(STDIN_FILENO, buf + totalRead, commandSize - totalRead);
+        totalRead += readBytes;
+    }
+    
+    if(buf[3] == ' ') {
+        buf[3] = '\0';
+    } else {
+        buf[4] = '\0';
     }
 
-    // Adds \0 to end of string for saveptr calls later
-    buf[readBytes > 0 ? readBytes : 0] = '\0';
-
-    // Variables to parse first line
-    char *saveptr;
-
-    // Get Command
-    char *clStatement = strtok_r(buf, " ", &saveptr);
-    char *command = clStatement;
-
-    // Make strings to check validity of commands
-    char *get = "get";
-    char *set = "set";
-
     // If command is get
-    if (strcmp(command, get) == 0) {
-        // Check for newline to proceed
-        for(int i = 0; saveptr[i] != '\n'; i++) {
-            if(saveptr[i] == ' ' || saveptr[i] == '\0') {
+    if (strcmp(buf, "get") == 0) {
+        readBytes = 1;
+        totalRead = 0;
+        while ((totalRead < (locationSize - 1)) && (readBytes > 0)) {
+            readBytes = read(STDIN_FILENO, buf + totalRead, locationSize - totalRead - 1);
+            totalRead += readBytes;
+        }
+        buf[locationSize] = '\0';
+
+        // Check for newlines and contents after buffer
+        int i;
+        for(i = 0; buf[i] != '\n'; i++) {
+            if(buf[i] == ' ' || buf[i] == '\0') {
                 fprintf(stderr, "Invalid Command\n");
                 return(EXIT_FAILURE);
             }
         }
-        // Get Location
-        clStatement = strtok_r(NULL, "\n", &saveptr);
-        char *location = clStatement;
-
-        // Check for invalid extra junk input
-        char *clStatement = strtok_r(NULL, "", &saveptr);
-        char *junk = clStatement;
-        if(junk != NULL) {
+        if(strlen(buf + i + 1) > 0) {
             fprintf(stderr, "Invalid Command\n");
             return(EXIT_FAILURE);
         }
 
+        buf[i] = '\0';
+
         // Open file for reading and check for validity
         int fd;
-        if ((fd = open(location, O_RDONLY, 0444)) == -1) {
+        if ((fd = open(buf, O_RDONLY)) == -1) {
             fprintf(stderr, "Invalid Command\n");
             return (EXIT_FAILURE);
         }
-
+        
         // Write file contents to stdout
         int readBytes;
         while ((readBytes = read(fd, buf, sizeof(buf))) > 0) {
             int writtenBytes, totalWritten = 0;
             while (totalWritten < readBytes) {
-                writtenBytes = write(STDOUT_FILENO, buf + totalWritten, readBytes);
+                writtenBytes = write(STDOUT_FILENO, buf + totalWritten, readBytes - totalWritten);
+                if(writtenBytes == -1) {
+                    fprintf(stderr, "Operation Failed\n");
+                    close(fd);
+                    return(EXIT_FAILURE);
+                }
                 totalWritten += writtenBytes;
             }
         }
         if(readBytes  == -1) {
             fprintf(stderr, "Invalid Command\n");
+            close(fd);
             return(EXIT_FAILURE);
         }
 
-        // Close file and exitg
+        // Close file and exit
         close(fd);
         return (EXIT_SUCCESS);
     }
 
     // If command is set
-    else if (strcmp(command, set) == 0) {
-        for(int i = 0; clStatement[i] != '\n'; i++) {
-            if(clStatement[i] == ' ') {
+    else if (strcmp(buf, "set") == 0) {
+        readBytes = 1;
+        totalRead = 0;
+        while ((totalRead < (locationSize - 1)) && (readBytes > 0)) {
+            readBytes = read(STDIN_FILENO, buf + totalRead, locationSize - totalRead - 1);
+            totalRead += readBytes;
+        }
+        buf[locationSize] = '\0';
+
+        // Check for newline
+        int i;
+        for(i = 0; buf[i] != '\n'; i++) {
+            if(buf[i] == ' ' || buf[i] == '\0') {
                 fprintf(stderr, "Invalid Command\n");
                 return(EXIT_FAILURE);
             }
         }
 
-        // Get Location
-        clStatement = strtok_r(NULL, "\n", &saveptr);
-        char *location = clStatement;
-        
+        buf[i] = '\0';
+
         // Open file for writing and check for validity
         int fd;
-        if ((fd = open(location, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1) {
+        if ((fd = open(buf, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1) {
             fprintf(stderr, "Invalid Command\n");
             return (EXIT_FAILURE);
         }
 
         // Write contents to buffer from initial read() call for first line.
         int writtenBytes = 0;
-        unsigned long totalWritten = 0;
-            while (totalWritten < strlen(saveptr)) {
-                writtenBytes = write(fd, saveptr + totalWritten, strlen(saveptr));
-                totalWritten += writtenBytes;
+        int totalWritten = 0;
+        totalRead = totalRead - i - 1;
+        char *contents = buf + i + 1;
+        while (totalWritten < totalRead) {
+            writtenBytes = write(fd, contents + totalWritten, totalRead - totalWritten);
+            if(writtenBytes == -1) {
+                fprintf(stderr, "Operation Failed\n");
+                close(fd);
+                return(EXIT_FAILURE);
             }
+            totalWritten += writtenBytes;
+        }
 
         // Continue to read if user would like to input more than initial input
-        int readBytes;
-        while ((readBytes = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
+        while ((readBytes = read(STDIN_FILENO, buf, 8192)) > 0) {
             int writtenBytes, totalWritten = 0;
             while (totalWritten < readBytes) {
-                writtenBytes = write(fd, buf + totalWritten, readBytes);
+                writtenBytes = write(fd, buf + totalWritten, readBytes - totalWritten);
+                if(writtenBytes == -1) {
+                    fprintf(stderr, "Operation Failed\n");
+                    close(fd);
+                    return(EXIT_FAILURE);
+                }
                 totalWritten += writtenBytes;
             }
         }
+
         if(readBytes  == -1) {
             fprintf(stderr, "Invalid Command\n");
+            close(fd);
             return(EXIT_FAILURE);
         }
 
