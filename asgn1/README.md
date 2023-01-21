@@ -7,7 +7,7 @@ Takes in stdin user input and then:
 - Prints out file contents to stdout if used get
 - Writes stdin input to file if used set
 
-##Developer Notes:
+## Developer Notes:
 - Initially had some troubles finding exact formmatting for string inputs
 - When testing, some problems came up about reading in contents for set command, but were fixed
 - New more exhaustive tests caused a revamp of receiving buffer input and parsing through commands + location correctly (in cases for partial rw as well)
