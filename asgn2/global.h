@@ -11,6 +11,7 @@ typedef struct Request {
     char *targetPath;
     char *version;
     int contentLength;
+    char *msgBody;
     int outfd;
     int infd;
 } Request;
