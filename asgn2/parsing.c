@@ -1,5 +1,5 @@
 #include "parsing.h"
-#define REQEX "^([a-zA-Z]{1,8}) /([a-zA-Z0-9.-]{1,63}) (HTTP/1\\.1)\r\n"
+#define REQEX "^([a-zA-Z]{1,8}) /([a-zA-Z0-9.-]{1,63}) (HTTP/[0-9]\\.[0-9])\r\n"
 #define HEADEX "([a-zA-Z0-9.-]{1,128}): ([ -~]{1,128})\r\n"
 
 int parseRequest(Request *req, char *buffer) {
@@ -11,12 +11,12 @@ int parseRequest(Request *req, char *buffer) {
     if(rc == 0) {
         req->cmd = buffer;
         req->targetPath = buffer + matches[2].rm_so;
+        req->version = buffer + matches[3].rm_so;
 
         buffer[matches[1].rm_eo] = '\0';
         req->targetPath[matches[2].rm_eo - matches[2].rm_so] = '\0';
-
-        fprintf(stdout, "Command: %s\n", req->cmd);
-        fprintf(stdout, "Path: %s\n", req->targetPath);
+        req->version[matches[3].rm_eo - matches[3].rm_so] = '\0';
+        
         buffer = buffer + matches[3].rm_eo + 2;
     } else {
         return(1);
@@ -26,16 +26,16 @@ int parseRequest(Request *req, char *buffer) {
     while(rc == 0) { 
         buffer[matches[1].rm_eo] = '\0';
         buffer[matches[2].rm_eo] = '\0';
-        fprintf(stdout, "Key: %s\n", buffer + matches[1].rm_so);
-        fprintf(stdout, "Value: %s\n", buffer + matches[2].rm_so);
-
+        if(strncmp(buffer, "Content-Length", 14) == 0) {
+            req->contentLength = atoi(buffer + matches[2].rm_so);
+        }
+        fprintf(stdout, "Value: %d\n", req->contentLength);
         buffer = buffer + matches[2].rm_eo + 2;
         rc = regexec(&re, buffer, 3, matches, 0);
     }
 
     if(buffer[0] == '\r' && buffer[1] == '\n') {
         req->msgBody = buffer + 2;
-        fprintf(stdout, "Message Body:%s\n", req->msgBody);
     }
     return(0);
 }

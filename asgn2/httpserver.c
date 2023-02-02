@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
         }
         parseRequest(&req, buf);
         close(sockfd);
+        memset(buf, '\0', sizeof(buf));
     }
     return(EXIT_SUCCESS);
 }
