@@ -10,7 +10,7 @@ typedef struct Request {
     char *cmd;
     char *targetPath;
     char *version;
-    int contentLength;
+    int contentLength = -1;
     char *msgBody;
     int outfd;
     int infd;
