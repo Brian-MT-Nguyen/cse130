@@ -1,4 +1,4 @@
 #pragma once
 #include "global.h"
 
-int writeResponse(Request *req);
+int writeResponse(Request *req, char *buffer);

@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
             return(EXIT_FAILURE);
         }
         parseRequest(&req, buf);
+        //fprintf(stdout, "cmd: %s\nPath: %s\nVersion: %s\nContent Length: %d\nMessage Body: %s\n", req.cmd, req.targetPath, req.version, req.contentLength, req.msgBody);
+        handleRequest(&req, buf);
         close(sockfd);
         memset(buf, '\0', sizeof(buf));
     }

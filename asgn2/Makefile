@@ -1,6 +1,6 @@
 CC = clang
 CFLAGS = -Wall -Wextra -Werror -pedantic
-OBJS = httpserver.o parsing.o asgn2_helper_funcs.a
+OBJS = httpserver.o parsing.o handler.o asgn2_helper_funcs.a
 
 all: httpserver
 
@@ -13,11 +13,11 @@ httpserver.o: httpserver.c
 parsing.o: 
 	$(CC) $(CFLAGS) -c parsing.c
 
-# handler.o: 
-# 	$(CC) $(CFLAGS) -c handler.c
+handler.o: 
+	$(CC) $(CFLAGS) -c handler.c
 
 # response.o:
 # 	$(CC) $(CFLAGS) -c response.c
 
 clean:
-	rm -f httpserver httpserver.o global.o parsing.o
+	rm -f httpserver httpserver.o global.o parsing.o handler.o

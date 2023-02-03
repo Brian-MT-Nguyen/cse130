@@ -3,6 +3,7 @@
 #define HEADEX "([a-zA-Z0-9.-]{1,128}): ([ -~]{1,128})\r\n"
 
 int parseRequest(Request *req, char *buffer) {
+    //puts(buffer);
     regex_t re;
     regmatch_t matches[4];
     int rc;
@@ -21,6 +22,7 @@ int parseRequest(Request *req, char *buffer) {
     } else {
         return(1);
     }
+    req->contentLength = -1;
     rc = regcomp(&re, HEADEX, REG_EXTENDED);
     rc = regexec(&re, buffer, 3, matches, 0);
     while(rc == 0) { 
@@ -29,7 +31,6 @@ int parseRequest(Request *req, char *buffer) {
         if(strncmp(buffer, "Content-Length", 14) == 0) {
             req->contentLength = atoi(buffer + matches[2].rm_so);
         }
-        fprintf(stdout, "Value: %d\n", req->contentLength);
         buffer = buffer + matches[2].rm_eo + 2;
         rc = regexec(&re, buffer, 3, matches, 0);
     }

@@ -1,6 +1,9 @@
 #pragma once
 #include "global.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
-int get(Request *req);
-
-int put(Request *req);
+int handleRequest(Request *req, char *buffer);
