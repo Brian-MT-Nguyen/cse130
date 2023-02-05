@@ -1,4 +1,5 @@
 #pragma once
+#include "asgn2_helper_funcs.h"
 #include "global.h"
 #include <stdio.h>
 #include <stdlib.h>

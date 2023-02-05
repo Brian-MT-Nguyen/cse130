@@ -7,18 +7,10 @@ int get(Request *req,  char *buffer) {
         return (EXIT_FAILURE);
     }
     int readBytes;
+    int totalRead = 0;
     while ((readBytes = read(fd, buffer, sizeof(buffer))) > 0) {
         // Write file readBytes amount of contents to stdout
-        int writtenBytes, totalWritten = 0;
-        while (totalWritten < readBytes) {
-            writtenBytes = write(STDOUT_FILENO, buffer + totalWritten, readBytes - totalWritten);
-            if (writtenBytes == -1) {
-                fprintf(stderr, "Operation Failed\n");
-                close(fd);
-                return (EXIT_FAILURE);
-            }
-            totalWritten += writtenBytes;
-        }
+        totalRead = readBytes + totalRead;
     }
 
     // Error if read is bad
@@ -27,11 +19,29 @@ int get(Request *req,  char *buffer) {
         close(fd);
         return (EXIT_FAILURE);
     }
+
+    lseek(fd, 0, SEEK_SET);
+    dprintf(req->infd, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", totalRead);
+    pass_bytes(fd, req->infd, totalRead);
     return(0);
 }
 
-int put(Request *req) {
-    fprintf(stdout, "We in B)%s", req->cmd);
+int put(Request *req, char *buffer) {
+    int fd;
+    if((fd = open(req->targetPath, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1) {
+        fprintf(stderr, "Invalid Command\n");
+        return (EXIT_FAILURE);
+    }
+    write_all(fd, req->msgBody, strlen(req->msgBody));
+    int readBytes;
+    int totalRead = req->contentLength - strlen(req->msgBody);
+    while (totalRead > 0) {
+        // Write file readBytes amount of contents to stdout
+        readBytes = read(req->infd, buffer, sizeof(buffer));
+        write_all(fd, buffer, readBytes);
+        totalRead = totalRead - readBytes;
+    }
+    dprintf(req->infd, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\nOK\n", 3);
     return(0);
 }
 int handleRequest(Request *req,  char *buffer) {
@@ -39,7 +49,7 @@ int handleRequest(Request *req,  char *buffer) {
         return (get(req, buffer));
     }
     else if (strncmp(req->cmd, "PUT", 3) == 0) {
-        return (put(req));
+        return (put(req, buffer));
     }
     else {
         return(1);
