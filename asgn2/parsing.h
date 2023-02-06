@@ -4,5 +4,6 @@
 #include <stdlib.h>
 #include <regex.h>
 #include <string.h>
+#include <errno.h>
 
-int parseRequest(Request *req, char *buffer);
+int parseRequest(Request *req, char *buffer, ssize_t bytesRead);

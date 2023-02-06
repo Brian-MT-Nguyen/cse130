@@ -1,21 +1,11 @@
 #pragma once
 
-// enum Command {
-//     NONE,
-//     GET,
-//     PUT
-// };
-
 typedef struct Request {
+    int infd;
     char *cmd;
     char *targetPath;
     char *version;
     int contentLength;
     char *msgBody;
-    int outfd;
-    int infd;
+    int remainingBytes;
 } Request;
-
-typedef struct Response { 
-    int statusCode;
-} Response;

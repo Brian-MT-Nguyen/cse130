@@ -1,57 +1,69 @@
 #include "handler.h"
 
-int get(Request *req,  char *buffer) {
+int get(Request *req) {
     int fd;
+    if ((fd = open(req->targetPath, O_RDONLY | O_DIRECTORY)) != -1) {
+        dprintf(req->infd, "HTTP/1.1 403 Forbidden\r\nContent-Length: %d\r\n\r\nForbidden\n", 10);
+        return (EXIT_FAILURE);
+    }
     if ((fd = open(req->targetPath, O_RDONLY)) == -1) {
-        fprintf(stderr, "Invalid Command\n");
+        dprintf(req->infd, "HTTP/1.1 404 Not Found\r\nContent-Length: %d\r\n\r\nNot Found\n", 10);
         return (EXIT_FAILURE);
     }
-    int readBytes;
-    int totalRead = 0;
-    while ((readBytes = read(fd, buffer, sizeof(buffer))) > 0) {
-        // Write file readBytes amount of contents to stdout
-        totalRead = readBytes + totalRead;
-    }
+    struct stat st;
+    stat(req->targetPath, &st);
+    off_t size = st.st_size;
 
-    // Error if read is bad
-    if (readBytes == -1) {
-        fprintf(stderr, "Invalid Command\n");
-        close(fd);
-        return (EXIT_FAILURE);
-    }
-
-    lseek(fd, 0, SEEK_SET);
-    dprintf(req->infd, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", totalRead);
-    pass_bytes(fd, req->infd, totalRead);
-    return(0);
+    dprintf(req->infd, "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\n\r\n", size);
+    pass_bytes(fd, req->infd, size);
+    close(fd);
+    return (EXIT_SUCCESS);
 }
 
-int put(Request *req, char *buffer) {
+int put(Request *req) {
     int fd;
-    if((fd = open(req->targetPath, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1) {
-        fprintf(stderr, "Invalid Command\n");
+    int statusCode = 200;
+    if ((fd = open(req->targetPath, O_WRONLY | O_DIRECTORY, 0666)) != -1) {
+        dprintf(req->infd, "HTTP/1.1 403 Forbidden\r\nContent-Length: %d\r\n\r\nForbidden\n", 10);
         return (EXIT_FAILURE);
     }
-    write_all(fd, req->msgBody, strlen(req->msgBody));
-    int readBytes;
-    int totalRead = req->contentLength - strlen(req->msgBody);
-    while (totalRead > 0) {
-        // Write file readBytes amount of contents to stdout
-        readBytes = read(req->infd, buffer, sizeof(buffer));
-        write_all(fd, buffer, readBytes);
-        totalRead = totalRead - readBytes;
+    if ((fd = open(req->targetPath, O_WRONLY | O_CREAT | O_EXCL, 0666)) != -1) {
+        statusCode = 201;
+    } else if ((fd = open(req->targetPath, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1) {
+        dprintf(req->infd, "HTTP/1.1 404 Not Found\r\nContent-Length: %d\r\n\r\nNot Found\n", 10);
+        return (EXIT_FAILURE);
     }
-    dprintf(req->infd, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\nOK\n", 3);
-    return(0);
+
+    int bytesWritten;
+    bytesWritten = write_all(fd, req->msgBody, req->remainingBytes);
+    int totalWritten = req->contentLength - req->remainingBytes;
+    while (totalWritten > 0) {
+        bytesWritten = pass_bytes(req->infd, fd, totalWritten);
+        totalWritten = totalWritten - bytesWritten;
+    }
+    if (statusCode == 201) {
+        dprintf(req->infd, "HTTP/1.1 201 Created\r\nContent-Length: %d\r\n\r\nCreated\n", 8);
+    } else {
+        dprintf(req->infd, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\nOK\n", 3);
+    }
+    close(fd);
+    return (EXIT_SUCCESS);
 }
-int handleRequest(Request *req,  char *buffer) {
-    if(strncmp(req->cmd, "GET", 3) == 0) {
-        return (get(req, buffer));
-    }
-    else if (strncmp(req->cmd, "PUT", 3) == 0) {
-        return (put(req, buffer));
-    }
-    else {
-        return(1);
+
+int handleRequest(Request *req) {
+    if (strncmp(req->version, "HTTP/1.1", 8) != 0) {
+        dprintf(req->infd,
+            "HTTP/1.1 505 Version Not Supported\r\nContent-Length: %d\r\n\r\nVersion Not "
+            "Supported\n",
+            22);
+        return (EXIT_FAILURE);
+    } else if (strncmp(req->cmd, "GET", 3) == 0) {
+        return (get(req));
+    } else if (strncmp(req->cmd, "PUT", 3) == 0) {
+        return (put(req));
+    } else {
+        dprintf(req->infd,
+            "HTTP/1.1 501 Not Implemented\r\nContent-Length: %d\r\n\r\nNot Implemented\n", 16);
+        return (EXIT_FAILURE);
     }
 }

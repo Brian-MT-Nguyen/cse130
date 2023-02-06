@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall -Wextra -Werror -pedantic
+CFLAGS = -Wall -Wextra -Werror -pedantic -g
 OBJS = httpserver.o parsing.o handler.o asgn2_helper_funcs.a
 
 all: httpserver

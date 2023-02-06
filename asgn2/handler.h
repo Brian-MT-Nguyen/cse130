@@ -6,5 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <errno.h>
 
-int handleRequest(Request *req, char *buffer);
+int handleRequest(Request *req);
