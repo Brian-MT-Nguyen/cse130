@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
         Request req;
         req.infd = sockfd;
         ssize_t bytesRead = read_until(sockfd, buf, BUFFERSIZE, "\r\n\r\n");
-        if (parseRequest(&req, buf, bytesRead) != -1) {
+        if (parseRequest(&req, buf, bytesRead) != 1) {
             handleRequest(&req);
         }
         close(sockfd);
