@@ -34,7 +34,12 @@ int parseRequest(Request *req, char *buffer, ssize_t bytesRead) {
         buffer[matches[1].rm_eo] = '\0';
         buffer[matches[2].rm_eo] = '\0';
         if (strncmp(buffer, "Content-Length", 14) == 0) {
-            req->contentLength = atoi(buffer + matches[2].rm_so);
+            int value = strtol(buffer + matches[2].rm_so, NULL, 10);
+            if (errno == EINVAL) {
+                dprintf(req->infd,
+                    "HTTP/1.1 400 Bad Request\r\nContent-Length: %d\r\n\r\nBad Request\n", 12);
+            }
+            req->contentLength = value;
         }
         buffer += matches[2].rm_eo + 2;
         totalOffset += matches[2].rm_eo + 2;
