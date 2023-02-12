@@ -11,4 +11,5 @@ Creates an http server to listen/accept connections from clients for communicati
 - Initially had some troubles figuring out logic for parsing and REGEX
 - Went through a couple of iterations on top down design and ended with parsing and handling module on top of main
 - Had some silly errors like checking for/using wrong conditionals and wrong variables that added unecessary debug time
+- Added lots of error handling and edge case detection using errno to hopefully ensure correct use of server status codes
 - Ended up not using response for now, but saving module in case future use is warranted
