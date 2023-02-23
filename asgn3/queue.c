@@ -24,14 +24,15 @@ queue_t *queue_new(int size) {
         if (!q->buffer) {
             free(q);
             q = NULL;
+        } else {
+            int rc;
+            rc = sem_init(&(q->fullSlots), 0, size);
+            assert(!rc);
+            rc = sem_init(&(q->emptySlots), 0, 0);
+            assert(!rc);
+            rc = sem_init(&(q->mutex), 0, 1);
+            assert(!rc);
         }
-        int rc;
-        rc = sem_init(&(q->fullSlots), 0, size);
-        assert(!rc);
-        rc = sem_init(&(q->emptySlots), 0, 0);
-        assert(!rc);
-        rc = sem_init(&(q->mutex), 0, 1);
-        assert(!rc);
     }
 
     return q;
