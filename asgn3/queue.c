@@ -47,6 +47,7 @@ void queue_delete(queue_t **q) {
         rc = sem_destroy(&(*q)->mutex);
         assert(!rc);
         free((*q)->buffer);
+        (*q)->buffer = NULL;
         free(*q);
         *q = NULL;
     }
