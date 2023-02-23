@@ -20,12 +20,12 @@ queue_t *queue_new(int size) {
         q->size = size;
         q->in = 0;
         q->out = 0;
-        q->buffer = (void **) calloc(size, sizeof(void *));
+        q->buffer = (void **) malloc(size * sizeof(void *));
         if (!q->buffer) {
             free(q);
             q = NULL;
         } else {
-            int rc;
+            int rc = 0;
             rc = sem_init(&(q->fullSlots), 0, size);
             assert(!rc);
             rc = sem_init(&(q->emptySlots), 0, 0);
@@ -40,7 +40,7 @@ queue_t *queue_new(int size) {
 
 void queue_delete(queue_t **q) {
     if (*q && (*q)->buffer) {
-        int rc;
+        int rc = 0;
         rc = sem_destroy(&(*q)->fullSlots);
         assert(!rc);
         rc = sem_destroy(&(*q)->emptySlots);
