@@ -11,6 +11,7 @@ A thread safe Circular Queue ADT that supports up to multiple threads (thread sa
     - queue_pop sets the (void **) elem to the desired element and increments out around modulo size
 
 ## Developer Notes:
+- Based implementation of required queue.h file provided
 - Followed the psuedo-code provided by Quinn in lecture
 - Still unsure if there is a more efficient/ better performing method
 - Also unsure whether to account for more errors and what messages to print out (I used assert() where applicable)
