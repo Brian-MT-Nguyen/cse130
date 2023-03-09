@@ -158,12 +158,10 @@ void handle_put(conn_t *conn) {
         debug("%s: %d", uri, errno);
         if (errno == EACCES || errno == EISDIR || errno == ENOENT) {
             res = &RESPONSE_FORBIDDEN;
-            conn_send_response(conn, res);
-            return;
+            goto out;
         } else {
             res = &RESPONSE_INTERNAL_SERVER_ERROR;
-            conn_send_response(conn, res);
-            return;
+            goto out;
         }
     }
 
@@ -171,11 +169,12 @@ void handle_put(conn_t *conn) {
 
     if (res == NULL && existed) {
         res = &RESPONSE_OK;
-        conn_send_response(conn, res);
     } else if (res == NULL && !existed) {
         res = &RESPONSE_CREATED;
-        conn_send_response(conn, res);
     }
+
     close(fd);
-    return;
+
+out:
+    conn_send_response(conn, res);
 }
