@@ -81,7 +81,7 @@ void handle_get(conn_t *conn) {
     char *uri = conn_get_uri(conn);
     const Response_t *res = NULL;
     debug("GET request not implemented. But, we want to get %s", uri);
-
+    
     // What are the steps in here?
 
     // 1. Open the file.
@@ -107,6 +107,7 @@ void handle_get(conn_t *conn) {
             return;
         }
     }
+
     // 2. Get the size of the file.
     // (hint: checkout the function fstat)!
 
@@ -124,6 +125,7 @@ void handle_get(conn_t *conn) {
         close(fd);
         return;
     }
+
     // 4. Send the file
     // (hint: checkout the conn_send_file function!)
     res = conn_send_file(conn, fd, size);
@@ -158,10 +160,12 @@ void handle_put(conn_t *conn) {
         debug("%s: %d", uri, errno);
         if (errno == EACCES || errno == EISDIR || errno == ENOENT) {
             res = &RESPONSE_FORBIDDEN;
-            goto out;
+            conn_send_response(conn, res);
+            return;
         } else {
             res = &RESPONSE_INTERNAL_SERVER_ERROR;
-            goto out;
+            conn_send_response(conn, res);
+            return;
         }
     }
 
@@ -169,12 +173,12 @@ void handle_put(conn_t *conn) {
 
     if (res == NULL && existed) {
         res = &RESPONSE_OK;
+        conn_send_response(conn, res);
     } else if (res == NULL && !existed) {
         res = &RESPONSE_CREATED;
+        conn_send_response(conn, res);
     }
 
     close(fd);
-
-out:
-    conn_send_response(conn, res);
+    return;
 }
