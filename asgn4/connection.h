@@ -19,15 +19,12 @@ void conn_delete(conn_t **conn);
 // that each field fits within our required bounds), but does not
 // check for semantic correctness (e.g., does not check that a URI is
 // not a directory).
-//
-// Returns NULL if there's no error, otherwise returns a pointer to a
-// response that should be sent to the client.
 const Response_t *conn_parse(conn_t *conn);
 
 //////////////////////////////////////////////////////////////////////
 // Functions that get stuff we might need elsewhere from a connection
 
-// Return the Request from parsing.
+// Return the RequestType from parsing.
 const Request_t *conn_get_request(conn_t *conn);
 
 // Return URI from parsing.
@@ -41,24 +38,15 @@ char *conn_get_header(conn_t *conn, char *header);
 // Functions that help get data from a connection
 
 // write the data form the connection into the file (fd).
-//
-// returns NULL if there's no error, otherwise returns a pointer to a
-// response that should be sent to the client.
 const Response_t *conn_recv_file(conn_t *conn, int fd);
 
 //////////////////////////////////////////////////////////////////////
 // Functions that help write responses to the client:
 
 // send a message body from the file (fd)
-//
-// returns NULL if there's no error, otherwise returns a pointer to a
-// response that should be sent to the client.
 const Response_t *conn_send_file(conn_t *conn, int fd, uint64_t count);
 
 // send canonical message for a response type
-//
-// returns NULL if there's no error, otherwise returns a pointer to a
-// response that should be sent to the client.
 const Response_t *conn_send_response(conn_t *conn, const Response_t *res);
 
 //Functions for debugging:
