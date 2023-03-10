@@ -17,39 +17,78 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <sys/stat.h>
+
+#define OPTIONS "t:"
 
 void handle_connection(int);
 
 void handle_get(conn_t *);
 void handle_put(conn_t *);
 void handle_unsupported(conn_t *);
+void* thread(void *args) {
+  uintptr_t threadid = (uintptr_t)args;
+  fprintf(stderr, "I am thread %lu!\n", threadid);
+  return args;
+}
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        warnx("wrong arguments: %s port_num", argv[0]);
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+
+    int opt = 0;
+    uintptr_t nt = 4;
+
+    while ((opt = getopt(argc, argv, OPTIONS)) != -1) {
+        switch (opt) {
+        case 't':
+            nt = atoi(optarg);
+            if (nt < 0) {
+                fprintf(stderr, "Invalid thread size.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        default: break;
+        }
+    }
+    
+    char *endptr = NULL;
+    size_t port = (size_t) strtoull(argv[optind], &endptr, 10);
+    if (endptr && *endptr != '\0') {
+        warnx("invalid port number: %s", argv[optind]);
         return EXIT_FAILURE;
     }
 
-    char *endptr = NULL;
-    size_t port = (size_t) strtoull(argv[1], &endptr, 10);
-    if (endptr && *endptr != '\0') {
-        warnx("invalid port number: %s", argv[1]);
+    if (argc < 2) {
+        warnx("wrong arguments: %s port_num", argv[optind]);
+        fprintf(stderr, "usage: %s <port>\n", argv[optind]);
         return EXIT_FAILURE;
     }
+
+    for(int i = optind + 1; i < argc; i++) {
+        fprintf(stderr, "More extraneous arguments\n");
+        return EXIT_FAILURE;
+    }
+
+    fprintf(stdout, "Threads: %ld\n", nt);
+    fprintf(stdout, "Port: %ld\n", port);
 
     signal(SIGPIPE, SIG_IGN);
     Listener_Socket sock;
     listener_init(&sock, port);
 
+    pthread_t threads[nt];
+    for(uintptr_t i = 0; i < nt; i++) {
+        pthread_create(&(threads[i]), NULL, thread, (void *)i);
+    }
     while (1) {
         int connfd = listener_accept(&sock);
         handle_connection(connfd);
         close(connfd);
     }
-
+    for(uintptr_t i = 0; i < nt; i++) {
+        pthread_join(threads[i], NULL);
+    }
     return EXIT_SUCCESS;
 }
 
