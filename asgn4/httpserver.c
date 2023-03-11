@@ -8,12 +8,14 @@
 #include "debug.h"
 #include "response.h"
 #include "request.h"
+#include "queue.h"
 
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -22,22 +24,26 @@
 #include <sys/stat.h>
 
 #define OPTIONS "t:"
-
+queue_t *q;
 void handle_connection(int);
 
 void handle_get(conn_t *);
 void handle_put(conn_t *);
 void handle_unsupported(conn_t *);
-void* thread(void *args) {
-  uintptr_t threadid = (uintptr_t)args;
-  fprintf(stderr, "I am thread %lu!\n", threadid);
-  return args;
+void *thread() {
+    while (1) {
+        int connfd = -1;
+        queue_pop(q, (void **) (uintptr_t) &connfd);
+        handle_connection(connfd);
+        close(connfd);
+    }
 }
 
 int main(int argc, char **argv) {
 
+    // Parse Command Line Args
     int opt = 0;
-    uintptr_t nt = 4;
+    int nt = 4;
 
     while ((opt = getopt(argc, argv, OPTIONS)) != -1) {
         switch (opt) {
@@ -51,7 +57,7 @@ int main(int argc, char **argv) {
         default: break;
         }
     }
-    
+
     char *endptr = NULL;
     size_t port = (size_t) strtoull(argv[optind], &endptr, 10);
     if (endptr && *endptr != '\0') {
@@ -65,28 +71,33 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    for(int i = optind + 1; i < argc; i++) {
+    for (int i = optind + 1; i < argc; i++) {
         fprintf(stderr, "More extraneous arguments\n");
         return EXIT_FAILURE;
     }
 
-    fprintf(stdout, "Threads: %ld\n", nt);
-    fprintf(stdout, "Port: %ld\n", port);
-
+    // Initialize socket for receiving connections
     signal(SIGPIPE, SIG_IGN);
     Listener_Socket sock;
     listener_init(&sock, port);
 
+    // Make queue
+    q = queue_new(nt);
+
+    // Initialize threads
     pthread_t threads[nt];
-    for(uintptr_t i = 0; i < nt; i++) {
-        pthread_create(&(threads[i]), NULL, thread, (void *)i);
+    for (int i = 0; i < nt; i++) {
+        pthread_create(&(threads[i]), NULL, thread, NULL);
     }
+
+    // Dispatcher Main Thread
     while (1) {
         int connfd = listener_accept(&sock);
-        handle_connection(connfd);
-        close(connfd);
+        queue_push(q, (void *) (uintptr_t) connfd);
     }
-    for(uintptr_t i = 0; i < nt; i++) {
+
+    // Join in case I make signal handler
+    for (int i = 0; i < nt; i++) {
         pthread_join(threads[i], NULL);
     }
     return EXIT_SUCCESS;
@@ -119,8 +130,7 @@ void handle_get(conn_t *conn) {
 
     char *uri = conn_get_uri(conn);
     const Response_t *res = NULL;
-    debug("GET request not implemented. But, we want to get %s", uri);
-    
+
     // What are the steps in here?
 
     // 1. Open the file.
@@ -158,7 +168,7 @@ void handle_get(conn_t *conn) {
     // 3. Check if the file is a directory, because directories *will*
     // open, but are not valid.
     // (hint: checkout the macro "S_IFDIR", which you can use after you call fstat!)
-    if(S_ISDIR(finfo.st_mode) == 1) {
+    if (S_ISDIR(finfo.st_mode) == 1) {
         res = &RESPONSE_FORBIDDEN;
         conn_send_response(conn, res);
         close(fd);
