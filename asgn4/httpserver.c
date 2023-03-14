@@ -22,22 +22,18 @@
 #include <pthread.h>
 
 #include <sys/stat.h>
+#include <sys/file.h>
+#include <sys/types.h>
 
 #define OPTIONS "t:"
 queue_t *q;
+pthread_mutex_t mutex;
 void handle_connection(int);
 
 void handle_get(conn_t *);
 void handle_put(conn_t *);
 void handle_unsupported(conn_t *);
-void *thread() {
-    while (1) {
-        int connfd = -1;
-        queue_pop(q, (void **) (uintptr_t) &connfd);
-        handle_connection(connfd);
-        close(connfd);
-    }
-}
+void *workerThread();
 
 int main(int argc, char **argv) {
 
@@ -84,23 +80,30 @@ int main(int argc, char **argv) {
     // Make queue
     q = queue_new(nt);
 
+    // Initialize mutex lock for put threads
+    pthread_mutex_init(&mutex, NULL);
+
     // Initialize threads
     pthread_t threads[nt];
     for (int i = 0; i < nt; i++) {
-        pthread_create(&(threads[i]), NULL, thread, NULL);
+        pthread_create(&(threads[i]), NULL, workerThread, NULL);
     }
 
     // Dispatcher Main Thread
     while (1) {
-        int connfd = listener_accept(&sock);
-        queue_push(q, (void *) (uintptr_t) connfd);
-    }
-
-    // Join in case I make signal handler
-    for (int i = 0; i < nt; i++) {
-        pthread_join(threads[i], NULL);
+        uintptr_t connfd = listener_accept(&sock);
+        queue_push(q, (void *) connfd);
     }
     return EXIT_SUCCESS;
+}
+
+void *workerThread() {
+    while (1) {
+        uintptr_t connfd = -1;
+        queue_pop(q, (void **) &connfd);
+        handle_connection(connfd);
+        close(connfd);
+    }
 }
 
 void handle_connection(int connfd) {
@@ -145,21 +148,36 @@ void handle_get(conn_t *conn) {
         if (errno == EACCES) {
             res = &RESPONSE_FORBIDDEN;
             conn_send_response(conn, res);
+            char *header = conn_get_header(conn, "Request-Id");
+            if (header == NULL) {
+                header = "0";
+            }
+            fprintf(stderr, "GET,/%s,403,%s\n", uri, header);
             return;
         } else if (errno == ENOENT) {
             res = &RESPONSE_NOT_FOUND;
             conn_send_response(conn, res);
+            char *header = conn_get_header(conn, "Request-Id");
+            if (header == NULL) {
+                header = "0";
+            }
+            fprintf(stderr, "GET,/%s,404,%s\n", uri, header);
             return;
         } else {
             res = &RESPONSE_INTERNAL_SERVER_ERROR;
             conn_send_response(conn, res);
+            char *header = conn_get_header(conn, "Request-Id");
+            if (header == NULL) {
+                header = "0";
+            }
+            fprintf(stderr, "GET,/%s,500,%s\n", uri, header);
             return;
         }
     }
 
     // 2. Get the size of the file.
     // (hint: checkout the function fstat)!
-
+    flock(fd, LOCK_SH);
     // Get the size of the file.
     struct stat finfo;
     fstat(fd, &finfo);
@@ -171,6 +189,11 @@ void handle_get(conn_t *conn) {
     if (S_ISDIR(finfo.st_mode) == 1) {
         res = &RESPONSE_FORBIDDEN;
         conn_send_response(conn, res);
+        char *header = conn_get_header(conn, "Request-Id");
+        if (header == NULL) {
+            header = "0";
+        }
+        fprintf(stderr, "GET,/%s,403,%s\n", uri, header);
         close(fd);
         return;
     }
@@ -179,10 +202,13 @@ void handle_get(conn_t *conn) {
     // (hint: checkout the conn_send_file function!)
     res = conn_send_file(conn, fd, size);
     if (res == NULL) {
-        res = &RESPONSE_OK;
-        conn_send_response(conn, res);
+        char *header = conn_get_header(conn, "Request-Id");
+        if (header == NULL) {
+            header = "0";
+        }
+        fprintf(stderr, "GET,/%s,200,%s\n", uri, header);
+        close(fd);
     }
-    close(fd);
     return;
 }
 
@@ -191,6 +217,13 @@ void handle_unsupported(conn_t *conn) {
 
     // send responses
     conn_send_response(conn, &RESPONSE_NOT_IMPLEMENTED);
+    char *uri = conn_get_uri(conn);
+    char *header = conn_get_header(conn, "Request-Id");
+    if (header == NULL) {
+        header = "0";
+    }
+    fprintf(stderr, "UNSUPPORTED,/%s,501,%s\n", uri, header);
+    return;
 }
 
 void handle_put(conn_t *conn) {
@@ -199,35 +232,64 @@ void handle_put(conn_t *conn) {
     const Response_t *res = NULL;
     debug("handling put request for %s", uri);
 
+    // Start of Critical Region
+    pthread_mutex_lock(&mutex);
+
     // Check if file already exists before opening it.
     bool existed = access(uri, F_OK) == 0;
     debug("%s existed? %d", uri, existed);
 
-    // Open the file..
-    int fd = open(uri, O_CREAT | O_TRUNC | O_WRONLY, 0600);
+    // Create/Open File
+    int fd = open(uri, O_CREAT | O_WRONLY, 0600);
     if (fd < 0) {
         debug("%s: %d", uri, errno);
         if (errno == EACCES || errno == EISDIR || errno == ENOENT) {
             res = &RESPONSE_FORBIDDEN;
             conn_send_response(conn, res);
+            char *header = conn_get_header(conn, "Request-Id");
+            if (header == NULL) {
+                header = "0";
+            }
+            fprintf(stderr, "PUT,/%s,403,%s\n", uri, header);
             return;
         } else {
             res = &RESPONSE_INTERNAL_SERVER_ERROR;
             conn_send_response(conn, res);
+            char *header = conn_get_header(conn, "Request-Id");
+            if (header == NULL) {
+                header = "0";
+            }
+            fprintf(stderr, "PUT,/%s,500,%s\n", uri, header);
             return;
         }
     }
 
+    flock(fd, LOCK_EX);
+
+    // End of Critical Region
+    pthread_mutex_unlock(&mutex);
+
+    ftruncate(fd, 0);
     res = conn_recv_file(conn, fd);
 
     if (res == NULL && existed) {
         res = &RESPONSE_OK;
         conn_send_response(conn, res);
+        char *header = conn_get_header(conn, "Request-Id");
+        if (header == NULL) {
+            header = "0";
+        }
+        fprintf(stderr, "PUT,/%s,200,%s\n", uri, header);
+        close(fd);
     } else if (res == NULL && !existed) {
         res = &RESPONSE_CREATED;
         conn_send_response(conn, res);
+        char *header = conn_get_header(conn, "Request-Id");
+        if (header == NULL) {
+            header = "0";
+        }
+        fprintf(stderr, "PUT,/%s,201,%s\n", uri, header);
+        close(fd);
     }
-
-    close(fd);
     return;
 }
