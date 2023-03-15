@@ -174,10 +174,9 @@ void handle_get(conn_t *conn) {
             return;
         }
     }
-
+    flock(fd, LOCK_SH);
     // 2. Get the size of the file.
     // (hint: checkout the function fstat)!
-    flock(fd, LOCK_SH);
     // Get the size of the file.
     struct stat finfo;
     fstat(fd, &finfo);
@@ -201,14 +200,12 @@ void handle_get(conn_t *conn) {
     // 4. Send the file
     // (hint: checkout the conn_send_file function!)
     res = conn_send_file(conn, fd, size);
-    if (res == NULL) {
-        char *header = conn_get_header(conn, "Request-Id");
-        if (header == NULL) {
-            header = "0";
-        }
-        fprintf(stderr, "GET,/%s,200,%s\n", uri, header);
-        close(fd);
+    char *header = conn_get_header(conn, "Request-Id");
+    if (header == NULL) {
+        header = "0";
     }
+    fprintf(stderr, "GET,/%s,200,%s\n", uri, header);
+    close(fd);
     return;
 }
 
@@ -280,7 +277,6 @@ void handle_put(conn_t *conn) {
             header = "0";
         }
         fprintf(stderr, "PUT,/%s,200,%s\n", uri, header);
-        close(fd);
     } else if (res == NULL && !existed) {
         res = &RESPONSE_CREATED;
         conn_send_response(conn, res);
@@ -289,7 +285,13 @@ void handle_put(conn_t *conn) {
             header = "0";
         }
         fprintf(stderr, "PUT,/%s,201,%s\n", uri, header);
-        close(fd);
+    } else {
+        char *header = conn_get_header(conn, "Request-Id");
+        if (header == NULL) {
+            header = "0";
+        }
+        fprintf(stderr, "PUT,/%s,500,%s\n", uri, header);
     }
+    close(fd);
     return;
 }
