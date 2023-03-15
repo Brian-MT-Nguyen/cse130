@@ -185,7 +185,7 @@ void handle_get(conn_t *conn) {
     // 3. Check if the file is a directory, because directories *will*
     // open, but are not valid.
     // (hint: checkout the macro "S_IFDIR", which you can use after you call fstat!)
-    if (S_ISDIR(finfo.st_mode) == 1) {
+    if (S_ISDIR(finfo.st_mode)) {
         res = &RESPONSE_FORBIDDEN;
         conn_send_response(conn, res);
         char *header = conn_get_header(conn, "Request-Id");
