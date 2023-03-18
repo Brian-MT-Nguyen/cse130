@@ -12,4 +12,4 @@ A multi-threaded version of the HTTP Server in asgn2
 ## Developer Notes:
 - Followed the pseudo-code of mutex file creation lock, provided by Vince in section, about preventing PUT race conditions
 - Failure rate is about 1/100 for conflict_stress_mix test and 100% for all others (decided on the tradeoff for more throughput)
-- May try to implement another variant of PUT race conditions prevention by creating another thread that is specifically made for creating files pushed/popped from a dedicated queue in the future
+- May try to implement another solution to prevent PUT race conditions by creating another thread that is specifically made for creating files pushed/popped from a dedicated queue rather than the mutex file creation lock in the future
